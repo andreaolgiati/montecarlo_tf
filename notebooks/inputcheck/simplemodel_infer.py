@@ -1,44 +1,51 @@
+import argparse
 import numpy as np
 import tensorflow as tf
 import uuid
 
-from tornasole_hook import TornasoleHook
+from collections import namedtuple
+from tornasole_tf.hook import TornasoleHook
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--mean', type=float, help='mean of the input distribution', required=True)
+parser.add_argument('--stddev', type=float, help='stddev of the input distribution', required=True)
+parser.add_argument('--batchsize', type=int, help='batch size', required=True)
+parser.add_argument('--steps', type=int, help='number of inferences', required=True)
+args = parser.parse_args()
+
+
+#Temporary hack to make the results of inference look like training
+packedresults = namedtuple('Res', ['results'])
 
 
 # Let's load a previously saved meta graph in the default graph
 # This function returns a Saver
 saver = tf.train.import_meta_graph('model/model.meta')
 
-# We can now access the default graph where all our metadata has been loaded
-graph = tf.get_default_graph()
-prediction = graph.get_tensor_by_name("Y_hat:0")
-product = graph.get_tensor_by_name("product:0")
-#cost = graph.get_tensor_by_name("cost:0")
-
+# Define a run ID so that we can find this run in Montecarlo
 run_id = str(uuid.uuid4())
 
-#infer_X = np.asarray([3.3,4.4,5.5,6.71,6.93,4.168,9.779,6.182,7.59,2.167,
-#                         7.042,10.791,5.313,7.997,5.654,9.27,3.1])
-tornasole_hook = TornasoleHook("./ts_outputs/infer/",include=["^product:0$", "^X:0$", "^Y_hat:0$"],exclude=["Y"],
+# Create a hook that will run with the inference
+tornasole_hook = TornasoleHook("./ts_outputs/infer/",
+                    include=["^product:0$", "^X:0$", "^Y_hat:0$"],
+                    exclude=[],
                     step_interval=1,
                     run_id=run_id, 
-                    dry_run=False, single_file=False, 
+                    dry_run=False, 
+                    single_file=True, 
                     local_reductions=False)
-
-batch_size = 128
 
 with tf.Session() as sess:
     # To initialize values with saved data
     saver.restore(sess, 'model/model')
     tornasole_hook.begin()
-    for i in range(100):
-        mu, sigma = 0.1*i, 2
-        infer_X = np.random.normal(mu, sigma, batch_size)
+    for i in range(args.steps):
+        infer_X = np.random.normal(args.mean, args.stddev, args.batchsize)
         sess_args = tornasole_hook.before_run(None)
-        #print( "SA=", sess_args.feed_dict)
         results = sess.run( sess_args.fetches, feed_dict={"X:0" : infer_X } )
+        # Temporary hack
+        results = packedresults(results)
         tornasole_hook.after_run(None,results)
-        #print( _pred, _prod )
-        if i % 10 == 0:
+        if i % (args.steps//10) == 0:
             print( f'Running sample {i}')
     tornasole_hook.end(sess)
