@@ -9,6 +9,8 @@ import uuid
 
 parser = argparse.ArgumentParser()
 parser.add_argument("files", nargs='+', type=str)
+parser.add_argument("--out", required=True)
+parser.add_argument("--chunksize", default=1000000)
 args = parser.parse_args()
 
 def softmax(x):
