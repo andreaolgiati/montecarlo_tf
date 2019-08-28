@@ -1,7 +1,7 @@
-from tornasole.exceptions import *
-from tornasole.core.utils import get_logger
-from tornasole.trials import create_trial
-from tornasole.rules.generic import *
+#from montecarlo.exceptions import *
+from montecarlo.core.utils import get_logger
+#from montecarlo.trials import create_trial
+from montecarlo.rules.generic import *
 import inspect
 
 logger = get_logger()
