@@ -50,7 +50,7 @@ def create_synthetic_traces(count, column_types):
     _reslist = []
     for _i in range(count):
         cols = create_synthetic_columns( column_types )
-        res = mkdata(data=cols, encoding='text/csv')
+        res = mkdata(data=cols, encoding='text/data')
         _reslist.append(res)
     payload = json.dumps(_reslist, indent=True)
     
@@ -71,11 +71,18 @@ def load_data(file_name):
 
 
 class EmailDomainAndStateCount(Count):
-    def filter_fn(self, csv):
-        email_address = csv[2]
-        email_domain = re.sub( r'.*@', '@', email_address )
-        state = csv[5].lower()
-        return [state, email_domain]
+    def filter_fn(self, no, data):   
+        #print( type(data) )
+        if no == 0:          
+            email_address = data[2]
+            email_domain = re.sub( r'.*@', '@', email_address )
+            state = data[5].lower()
+            return [state, email_domain]
+        else:
+            return data
+        #elif no == 1:
+        #    print( "D=", type(data) )
+        #    return data['prediction']
 
 
 def test_average():
@@ -97,7 +104,9 @@ def test_average():
     except RuleEvaluationConditionMet:
         pass
     finally:
-        os.remove(tracefile)
+        #os.remove(tracefile)
+        print( tracefile )
+        pass
 
 
     #try:

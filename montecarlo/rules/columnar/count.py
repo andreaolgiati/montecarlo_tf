@@ -14,26 +14,21 @@ class Count(Rule):
         self.max_threshold = int(max_threshold)
         self.logger.info("Count rule created.")
 
-    def filter_fn(self, csv):
+    def filter_fn(self, no, csv):
         return csv
-
-    def load_trace_data( self, trace ):
-        csv = trace['capturedData']['0']['data']
-        if type(csv) is not list:
-            csv = json.loads(csv)
-        filtered_csv = tuple(self.filter_fn(csv))
-        return (trace['eventId'], trace['inferenceTime'], filtered_csv)
-
 
     def invoke_at_period(self, start_time, end_time, traces, storage_handler=None, **kwargs):
         counters = []
         for trace in traces:
-            print(trace)
+            #print(trace)
             _event_id, _event_time, filtered_data = self.load_trace_data(trace)
+            assert type(filtered_data) == list
+            assert len(filtered_data) == 2
+            in_data, _out_data = filtered_data
             if len(counters)==0:
-                for i in range(len(filtered_data)):
+                for i in range(len(in_data)):
                     counters.append(Counter())
-            for i, item in enumerate(filtered_data):
+            for i, item in enumerate(in_data):
                 counters[i][item] += 1
         #for counter in counters:
         #    if counter[max(counter)] > self.max_threshold:
